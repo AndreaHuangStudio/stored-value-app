@@ -1,4 +1,4 @@
-// A1.3.3c — 訪談可編輯日期 + lastModified
+// A1.3.3d (patch) — 強化「新增/編輯訪談」儲存流程，避免部分瀏覽器不觸發 method=dialog 的提交
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const screenList=$('#screen-list'), screenDetail=$('#screen-detail');
 let currentCustomer=null, currentFilter='all';
@@ -138,17 +138,18 @@ function openTxnDialog(type){
   },{once:true});
 }
 
-// 新：訪談可新增/編輯/刪除 + 編輯日期 + lastModified
+// 新：訪談可新增/編輯/刪除 + 安全儲存（保證關閉值為 ok）
 function openInterviewDialog(edit=null){
   const dlg=$('#dlgInterview');
   const title=$('#dlgInterviewTitle');
   const delBtn=$('#btnDeleteInterview');
   const whenInput=$('#iWhen');
   const meta=$('#iMeta');
+  const saveBtn=$('#btnSaveInterview');
 
   // 預設時間
   const whenMs = edit?.date || Date.now();
-  whenInput.value = toLocalDatetimeValue(whenMs);
+  if(whenInput){ whenInput.value = toLocalDatetimeValue(whenMs); }
 
   $('#iTopic').value=edit?.topic||'';
   $('#iContent').value=edit?.content||'';
@@ -156,6 +157,15 @@ function openInterviewDialog(edit=null){
   title.textContent = edit ? '編輯訪談紀錄' : '新增訪談紀錄';
   delBtn.style.display = edit ? 'inline-block' : 'none';
   meta.textContent = edit?.lastModified ? `上次編輯：${new Date(edit.lastModified).toLocaleString()}` : '';
+
+  // 修正：部分裝置上 method="dialog" 不一定會把 value="ok" 帶回
+  // 這裡強制把儲存鈕改為 type="button"，自行驗證後呼叫 dlg.close('ok')
+  saveBtn.type = 'button';
+  saveBtn.onclick = ()=>{
+    const topic = $('#iTopic').value.trim();
+    if(!topic){ alert('請輸入主題'); return; }
+    try{ dlg.close('ok'); }catch(_){}
+  };
 
   // 刪除
   delBtn.onclick = async ()=>{
@@ -169,7 +179,7 @@ function openInterviewDialog(edit=null){
   dlg.showModal();
   dlg.addEventListener('close',async ()=>{
     if(dlg.returnValue!=='ok') return;
-    const picked = whenInput.value ? new Date(whenInput.value).getTime() : whenMs;
+    const picked = whenInput && whenInput.value ? new Date(whenInput.value).getTime() : whenMs;
     const item={
       id: edit?.id,
       customerId: currentCustomer.id,
