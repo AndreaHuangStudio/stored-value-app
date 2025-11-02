@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>客戶儲值帳本 A1.3.1</title>
+  <title>客戶儲值帳本 A1.3.2</title>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#2e7d32">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -17,31 +17,32 @@
 <header class="appbar">
   <h1>客戶</h1>
   <div class="spacer"></div>
-  <button id="btnBackupAll" class="ghost">全站備份</button>
+  <button id="btnBackupAll" class="ghost" type="button">全站備份</button>
   <button id="btnInstall" class="ghost" hidden>安裝</button>
 </header>
 
 <div id="backupBanner" class="banner" hidden>
   <div>🔔 提醒：請定期「匯出 CSV / JSON」備份資料（刪除 App/書籤會清空本機資料）。</div>
-  <button id="btnDismissBanner" class="ghost small">知道了</button>
+  <button id="btnDismissBanner" class="ghost small" type="button">知道了</button>
 </div>
 
 <main id="screen-list" class="screen active">
   <div class="search-row">
     <input id="searchInput" placeholder="搜尋姓名、電話、LINE ID…">
-    <button id="btnAddCustomer" class="primary">＋新增</button>
+    <button id="btnAddCustomer" class="primary" type="button">＋新增</button>
   </div>
   <ul id="customerList" class="list"></ul>
 </main>
 
 <main id="screen-detail" class="screen">
   <nav class="toolbar">
-    <button id="btnBack">← 返回</button>
+    <button id="btnBack" type="button">← 返回</button>
     <div class="spacer"></div>
-    <button id="btnImport" class="ghost">匯入CSV</button>
-    <button id="btnExport" class="ghost">匯出交易CSV</button>
-    <button id="btnExportInterviews" class="ghost">匯出訪談CSV</button>
-    <button id="btnDeleteCustomer" class="danger">刪除</button>
+    <button id="btnEditCustomer" class="ghost" type="button">編輯客戶</button>
+    <button id="btnImport" class="ghost" type="button">匯入CSV</button>
+    <button id="btnExport" class="ghost" type="button">匯出交易CSV</button>
+    <button id="btnExportInterviews" class="ghost" type="button">匯出訪談CSV</button>
+    <button id="btnDeleteCustomer" class="danger" type="button">刪除</button>
   </nav>
 
   <section class="card">
@@ -56,17 +57,17 @@
       </div>
     </div>
     <div class="row">
-      <button id="btnTopUp" class="primary wide">＋ 儲值</button>
-      <button id="btnSpend" class="wide">－ 消費</button>
+      <button id="btnTopUp" class="primary wide" type="button">＋ 儲值</button>
+      <button id="btnSpend" class="wide" type="button">－ 消費</button>
     </div>
   </section>
 
   <section class="card">
     <div class="segmented">
-      <button data-filter="all" class="seg active">全部</button>
-      <button data-filter="topup" class="seg">儲值</button>
-      <button data-filter="spend" class="seg">消費</button>
-      <button data-filter="adjust" class="seg">調整</button>
+      <button data-filter="all" class="seg active" type="button">全部</button>
+      <button data-filter="topup" class="seg" type="button">儲值</button>
+      <button data-filter="spend" class="seg" type="button">消費</button>
+      <button data-filter="adjust" class="seg" type="button">調整</button>
     </div>
     <ul id="txnList" class="list"></ul>
   </section>
@@ -74,7 +75,7 @@
   <section class="card">
     <div class="row between">
       <h3 class="section-title">🗒 訪談紀錄</h3>
-      <button id="btnAddInterview" class="ghost">＋新增訪談</button>
+      <button id="btnAddInterview" class="ghost" type="button">＋新增訪談</button>
     </div>
     <ul id="interviewList" class="list"></ul>
   </section>
@@ -86,14 +87,14 @@
   <label>電話（可略） <input id="cPhone" maxlength="30"></label>
   <label>LINE ID（可略） <input id="cLineId" maxlength="64"></label>
   <label>備註（可略） <input id="cNote" maxlength="200"></label>
-  <menu><button value="cancel">取消</button><button id="btnSaveCustomer" value="ok" class="primary">儲存</button></menu>
+  <menu><button value="cancel" type="button">取消</button><button id="btnSaveCustomer" value="ok" class="primary">儲存</button></menu>
 </form></dialog>
 
 <dialog id="dlgTxn"><form method="dialog" class="dialog">
   <h3 id="dlgTxnTitle">交易</h3>
   <label>金額（正數） <input id="tAmount" inputmode="decimal" required></label>
   <label>備註（可略） <input id="tNote" maxlength="200"></label>
-  <menu><button value="cancel">取消</button><button id="btnSaveTxn" value="ok" class="primary">確定</button></menu>
+  <menu><button value="cancel" type="button">取消</button><button id="btnSaveTxn" value="ok" class="primary">確定</button></menu>
 </form></dialog>
 
 <dialog id="dlgInterview"><form method="dialog" class="dialog">
@@ -101,26 +102,26 @@
   <label>主題 <input id="iTopic" required maxlength="100" placeholder="例：療程後回饋"></label>
   <label>內容 <textarea id="iContent" rows="6" placeholder="重點、問題、客戶需求…"></textarea></label>
   <label>後續追蹤事項（可略） <input id="iNext" maxlength="120" placeholder="例：下週三回電確認"></label>
-  <menu><button value="cancel">取消</button><button id="btnSaveInterview" value="ok" class="primary">儲存</button></menu>
+  <menu><button value="cancel" type="button">取消</button><button id="btnSaveInterview" value="ok" class="primary">儲存</button></menu>
 </form></dialog>
 
 <dialog id="dlgImportResult"><form method="dialog" class="dialog">
   <h3>匯入完成</h3>
   <p id="importSummary" class="muted"></p>
-  <menu><button value="ok" class="primary">關閉</button></menu>
+  <menu><button value="cancel" type="button">關閉</button></menu>
 </form></dialog>
 
 <dialog id="dlgBackupAll"><form method="dialog" class="dialog">
   <h3>全站備份</h3>
   <p class="muted">選擇你要備份的內容：</p>
   <div class="row">
-    <button id="btnBackupTxns" class="primary wide">全部交易（CSV）</button>
-    <button id="btnBackupInterviews" class="wide">全部訪談（CSV）</button>
+    <button id="btnBackupTxns" class="primary wide" type="button">全部交易（CSV）</button>
+    <button id="btnBackupInterviews" class="wide" type="button">全部訪談（CSV）</button>
   </div>
   <div class="row">
-    <button id="btnBackupJSON" class="ghost wide">完整資料（JSON）</button>
+    <button id="btnBackupJSON" class="ghost wide" type="button">完整資料（JSON）</button>
   </div>
-  <menu><button value="cancel">關閉</button></menu>
+  <menu><button value="cancel" type="button">關閉</button></menu>
 </form></dialog>
 
 <input id="fileImport" type="file" accept=".csv,text/csv" hidden />

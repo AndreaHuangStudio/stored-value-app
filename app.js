@@ -2,6 +2,21 @@
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const screenList=$('#screen-list'), screenDetail=$('#screen-detail');
 let currentCustomer=null, currentFilter='all';
+
+function wireDialogCancel(id) {
+  const dlg = document.getElementById(id);
+  if (!dlg) return;
+  dlg.querySelectorAll('button[value="cancel"]').forEach(btn => {
+    btn.setAttribute('type','button');
+    btn.addEventListener('click', (e)=>{ e.preventDefault(); try{ dlg.close('cancel'); }catch(_){ } });
+  });
+  dlg.addEventListener('click', (e)=>{
+    const r = dlg.getBoundingClientRect();
+    const inBox = (e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom);
+    if (!inBox) { try{ dlg.close('cancel'); }catch(_){ } }
+  });
+}
+
 function showList(){ screenList.classList.add('active'); screenDetail.classList.remove('active'); renderCustomerList(); }
 function showDetail(c){ currentCustomer=c; screenList.classList.remove('active'); screenDetail.classList.add('active'); $('#detailName').textContent=c.name; setContactLine(c); updateBalance(); renderTxnList(); renderInterviewList(); }
 function setContactLine(c){ const p=[]; if(c.phone)p.push(`📞 ${c.phone}`); if(c.lineId)p.push(`💬 LINE: ${c.lineId}`); $('#detailContact').textContent=p.join('  ·  '); }
@@ -41,6 +56,7 @@ async function renderInterviewList(){
 $('#btnAddCustomer').addEventListener('click',()=>openCustomerDialog());
 $('#searchInput').addEventListener('input',renderCustomerList);
 $('#btnBack').addEventListener('click',showList);
+$('#btnEditCustomer').addEventListener('click',()=>openCustomerDialog(currentCustomer));
 $('#btnExport').addEventListener('click',()=>exportCustomerCSV(currentCustomer));
 $('#btnExportInterviews').addEventListener('click',()=>exportCustomerInterviewsCSV(currentCustomer));
 $('#btnImport').addEventListener('click',async ()=>{ const res=await importCustomerCSV(currentCustomer); $('#importSummary').textContent=`成功匯入 ${res.imported} 筆；略過 ${res.skipped} 筆。`; document.getElementById('dlgImportResult').showModal(); await updateBalance(); renderTxnList(); renderCustomerList(); });
@@ -49,10 +65,8 @@ $$('.segmented .seg').forEach(btn=>{ btn.addEventListener('click',()=>{ $$('.seg
 $('#btnTopUp').addEventListener('click',()=>openTxnDialog('topup')); $('#btnSpend').addEventListener('click',()=>openTxnDialog('spend'));
 $('#btnAddInterview').addEventListener('click',()=>openInterviewDialog());
 $('#btnBackupAll').addEventListener('click',()=> document.getElementById('dlgBackupAll').showModal());
-document.getElementById('dlgBackupAll').addEventListener('close', ()=>{});
-document.getElementById('btnBackupTxns').addEventListener('click',(e)=>{ e.preventDefault(); exportAllTxnsCSV(); });
-document.getElementById('btnBackupInterviews').addEventListener('click',(e)=>{ e.preventDefault(); exportAllInterviewsCSV(); });
-document.getElementById('btnBackupJSON').addEventListener('click',(e)=>{ e.preventDefault(); exportAllDataJSON(); });
+['dlgCustomer','dlgTxn','dlgInterview','dlgImportResult','dlgBackupAll'].forEach(wireDialogCancel);
+
 function openCustomerDialog(edit=null){ const dlg=$('#dlgCustomer'); $('#dlgCustomerTitle').textContent=edit?'編輯客戶':'新增客戶';
   $('#cName').value=edit?.name||''; $('#cPhone').value=edit?.phone||''; $('#cLineId').value=edit?.lineId||''; $('#cNote').value=edit?.note||'';
   dlg.showModal(); dlg.addEventListener('close',async ()=>{ if(dlg.returnValue!=='ok') return;

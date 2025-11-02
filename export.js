@@ -8,7 +8,6 @@ function asCSV(rows){
   return rows.map(r=>r.map(esc).join(',')).join('\n');
 }
 function saveBlob(filename, blob){
-  // Prefer Web Share (lets iOS 存到「檔案」)
   if (navigator.share && blob.size < 9*1024*1024) {
     const file = new File([blob], filename, {type: blob.type});
     navigator.share({ files: [file], title: filename }).catch(()=>{
