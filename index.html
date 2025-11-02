@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>客戶儲值帳本 A1.2</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#2e7d32">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="db.js"></script>
+  <script defer src="export.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+<header class="appbar">
+  <h1>客戶</h1>
+  <button id="btnInstall" class="ghost" hidden>安裝</button>
+</header>
+
+<main id="screen-list" class="screen active">
+  <div class="search-row">
+    <input id="searchInput" placeholder="搜尋姓名、電話、LINE ID…">
+    <button id="btnAddCustomer" class="primary">＋新增</button>
+  </div>
+  <ul id="customerList" class="list"></ul>
+</main>
+
+<main id="screen-detail" class="screen">
+  <nav class="toolbar">
+    <button id="btnBack">← 返回</button>
+    <div class="spacer"></div>
+    <button id="btnExport">匯出CSV</button>
+    <button id="btnDeleteCustomer" class="danger">刪除</button>
+  </nav>
+
+  <section class="card">
+    <div class="row between">
+      <div>
+        <h2 id="detailName">—</h2>
+        <div id="detailContact" class="muted"></div>
+      </div>
+      <div class="balance">
+        餘額
+        <div id="detailBalance" class="money">—</div>
+      </div>
+    </div>
+    <div class="row">
+      <button id="btnTopUp" class="primary wide">＋ 儲值</button>
+      <button id="btnSpend" class="wide">－ 消費</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="segmented">
+      <button data-filter="all" class="seg active">全部</button>
+      <button data-filter="topup" class="seg">儲值</button>
+      <button data-filter="spend" class="seg">消費</button>
+      <button data-filter="adjust" class="seg">調整</button>
+    </div>
+    <ul id="txnList" class="list"></ul>
+  </section>
+
+  <section class="card">
+    <div class="row between">
+      <h3 class="section-title">🗒 訪談紀錄</h3>
+      <button id="btnAddInterview" class="ghost">＋新增訪談</button>
+    </div>
+    <ul id="interviewList" class="list"></ul>
+  </section>
+</main>
+
+<!-- dialogs -->
+<dialog id="dlgCustomer">
+  <form method="dialog" class="dialog">
+    <h3 id="dlgCustomerTitle">新增客戶</h3>
+    <label>姓名 <input id="cName" required maxlength="40"></label>
+    <label>電話（可略） <input id="cPhone" maxlength="30"></label>
+    <label>LINE ID（可略） <input id="cLineId" maxlength="64"></label>
+    <label>備註（可略） <input id="cNote" maxlength="200"></label>
+    <menu>
+      <button value="cancel">取消</button>
+      <button id="btnSaveCustomer" value="ok" class="primary">儲存</button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="dlgTxn">
+  <form method="dialog" class="dialog">
+    <h3 id="dlgTxnTitle">交易</h3>
+    <label>金額（正數） <input id="tAmount" inputmode="decimal" required></label>
+    <label>備註（可略） <input id="tNote" maxlength="200"></label>
+    <menu>
+      <button value="cancel">取消</button>
+      <button id="btnSaveTxn" value="ok" class="primary">確定</button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="dlgInterview">
+  <form method="dialog" class="dialog">
+    <h3>新增訪談紀錄</h3>
+    <label>主題 <input id="iTopic" required maxlength="100" placeholder="例：療程後回饋"></label>
+    <label>內容 <textarea id="iContent" rows="6" placeholder="重點、問題、客戶需求…"></textarea></label>
+    <label>後續追蹤事項（可略） <input id="iNext" maxlength="120" placeholder="例：下週三回電確認"></label>
+    <menu>
+      <button value="cancel">取消</button>
+      <button id="btnSaveInterview" value="ok" class="primary">儲存</button>
+    </menu>
+  </form>
+</dialog>
+
+<footer class="footnote">
+  <small>離線可用・資料儲存在本機 IndexedDB・請定期用「匯出CSV」備份</small>
+</footer>
+
+<script>
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  const b = document.getElementById('btnInstall');
+  b.hidden = false;
+});
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const b = document.getElementById('btnInstall');
+  b.addEventListener('click', async ()=>{
+    b.hidden = true;
+    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+  });
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
