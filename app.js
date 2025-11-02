@@ -84,13 +84,20 @@ $('#btnTopUp').addEventListener('click',()=>openTxnDialog('topup'));
 $('#btnSpend').addEventListener('click',()=>openTxnDialog('spend'));
 $('#btnAddInterview').addEventListener('click',()=>openInterviewDialog());
 
-// 全站備份視窗 + 三個匯出功能
+// 全站備份 + 全站匯入
 $('#btnBackupAll').addEventListener('click',()=> document.getElementById('dlgBackupAll').showModal());
+$('#btnImportAll').addEventListener('click',()=> document.getElementById('dlgImportAll').showModal());
+
 document.getElementById('btnBackupTxns').addEventListener('click',()=>exportAllTxnsCSV());
 document.getElementById('btnBackupInterviews').addEventListener('click',()=>exportAllInterviewsCSV());
 document.getElementById('btnBackupJSON').addEventListener('click',()=>exportAllDataJSON());
 
-['dlgCustomer','dlgTxn','dlgInterview','dlgImportResult','dlgBackupAll'].forEach(wireDialogCancel);
+document.getElementById('btnImportTxns').addEventListener('click',()=>importAllTxnsCSV());
+document.getElementById('btnImportInterviews').addEventListener('click',()=>importAllInterviewsCSV());
+document.getElementById('btnImportJSON').addEventListener('click',()=>importAllDataJSON());
+document.getElementById('btnImportPartial').addEventListener('click',()=>importCustomerCSVInteractive());
+
+['dlgCustomer','dlgTxn','dlgInterview','dlgImportResult','dlgBackupAll','dlgImportAll'].forEach(wireDialogCancel);
 
 // Dialog helpers
 function openCustomerDialog(edit=null){

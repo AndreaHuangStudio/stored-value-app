@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>客戶儲值帳本 A1.3.2b</title>
+  <title>客戶儲值帳本 A1.3.3</title>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#2e7d32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -11,6 +11,7 @@
   <script defer src="db.js"></script>
   <script defer src="export.js"></script>
   <script defer src="import.js"></script>
+  <script defer src="importAll.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -18,6 +19,7 @@
   <h1>客戶</h1>
   <div class="spacer"></div>
   <button id="btnBackupAll" class="ghost" type="button">全站備份</button>
+  <button id="btnImportAll" class="ghost" type="button">全站匯入</button>
 </header>
 
 <main id="screen-list" class="screen active">
@@ -118,7 +120,24 @@
   <menu><button value="cancel" type="button">關閉</button></menu>
 </form></dialog>
 
+<dialog id="dlgImportAll"><form method="dialog" class="dialog">
+  <h3>全站匯入</h3>
+  <p class="muted">選擇你要匯入的內容：</p>
+  <div class="row">
+    <button id="btnImportTxns" class="primary wide" type="button">全部交易（CSV）</button>
+    <button id="btnImportInterviews" class="wide" type="button">全部訪談（CSV）</button>
+  </div>
+  <div class="row">
+    <button id="btnImportJSON" class="ghost wide" type="button">完整資料（JSON）</button>
+  </div>
+  <div class="row">
+    <button id="btnImportPartial" class="ghost wide" type="button">個別匯入</button>
+  </div>
+  <menu><button value="cancel" type="button">關閉</button></menu>
+</form></dialog>
+
 <input id="fileImport" type="file" accept=".csv,text/csv" hidden />
+<input id="fileImportAll" type="file" accept=".csv,application/json,text/csv,application/json" hidden />
 
 <footer class="footnote"><small>離線可用・資料儲存在本機 IndexedDB・請定期用匯出備份</small></footer>
 

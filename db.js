@@ -23,6 +23,7 @@ async function dbGetAll(store,indexName=null,query=null){ const db=await openDB(
 async function dbDelete(store,key){ const db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);});}
 async function dbFilter(store,predicate){ const all=await dbGetAll(store); return all.filter(predicate); }
 async function listCustomers(){ return dbGetAll(STORE_CUSTOMERS); }
+async function getCustomerByName(name){ const all=await listCustomers(); return all.find(c=>c.name===name); }
 async function saveCustomer(c){ c.id=c.id||crypto.randomUUID(); c.lineId=c.lineId||''; return dbPut(STORE_CUSTOMERS,c); }
 async function deleteCustomerCascade(id){ const txns=await dbFilter(STORE_TXNS,t=>t.customerId===id); await Promise.all(txns.map(t=>dbDelete(STORE_TXNS,t.id))); const interviews=await dbFilter(STORE_INTERVIEWS,t=>t.customerId===id); await Promise.all(interviews.map(t=>dbDelete(STORE_INTERVIEWS,t.id))); await dbDelete(STORE_CUSTOMERS,id); }
 async function listTxns(customerId){ return dbGetAll(STORE_TXNS,'customerId',customerId); }

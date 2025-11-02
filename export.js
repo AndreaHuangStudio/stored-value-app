@@ -1,9 +1,5 @@
 function asCSV(rows){
-  const esc = (v)=>{
-    if (v===null || v===undefined) return '';
-    v = String(v).replace(/"/g,'""');
-    return /[",\n]/.test(v) ? `"${v}"` : v;
-  };
+  const esc = (v)=>{ if (v===null || v===undefined) return ''; v = String(v).replace(/"/g,'""'); return /[",\n]/.test(v) ? `"${v}"` : v; };
   return rows.map(r=>r.map(esc).join(',')).join('\n');
 }
 function saveBlob(filename, blob){
