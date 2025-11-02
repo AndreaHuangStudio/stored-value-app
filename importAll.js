@@ -1,4 +1,5 @@
-// A1.3.3d — 全站匯入支援 lastModified（CSV 可選欄 / JSON）
+
+// A1.3.3e — Import All (dedupe + lastModified)
 function readFileFromPicker(inputId, accept){
   return new Promise((resolve)=>{
     const input=document.getElementById(inputId); input.value=''; input.accept=accept;

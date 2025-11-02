@@ -1,4 +1,5 @@
-// A1.3.3d — 單一客戶 CSV 匯入，支援可選「最後修改」欄位 & 寫入 lastModified
+
+// A1.3.3e — Single Customer CSV import (dedupe + lastModified)
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim().length>0);
   if(!lines.length) return [];
@@ -12,7 +13,6 @@ function parseCSV(text){
     out.push(cur); return out;
   });
 }
-// 指紋避免重複
 function txnFingerprint(customerId, type, amount, createdAt, note){
   const amt = Number(amount||0).toFixed(2);
   const ts = Math.floor((typeof createdAt==='number'?createdAt:Date.parse(createdAt))/1000);

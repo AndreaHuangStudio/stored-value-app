@@ -1,4 +1,5 @@
-// A1.3.3e — 無預設客戶 + 匯入後自動更新畫面 + 訪談可增刪改
+
+// A1.3.3e — Fix add/edit interview + refresh UI hooks + no seed
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const screenList=$('#screen-list'), screenDetail=$('#screen-detail');
 let currentCustomer=null, currentFilter='all';
@@ -12,7 +13,7 @@ function wireDialogCancel(id) {
   });
   dlg.addEventListener('click', (e)=>{
     const r = dlg.getBoundingClientRect();
-    const inBox = (e.clientX>=r.left && e.clientX<=r.right && e.clientY<=r.bottom);
+    const inBox = (e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom);
     if (!inBox) { try{ dlg.close('cancel'); }catch(_){ } }
   });
 }
@@ -22,15 +23,7 @@ function showDetail(c){ currentCustomer=c; screenList.classList.remove('active')
 function setContactLine(c){ const p=[]; if(c.phone)p.push(`📞 ${c.phone}`); if(c.lineId)p.push(`💬 LINE: ${c.lineId}`); $('#detailContact').textContent=p.join('  ·  '); }
 async function updateBalance(){ const bal=await calcBalance(currentCustomer.id); $('#detailBalance').textContent=new Intl.NumberFormat('zh-Hant-TW',{style:'currency',currency:'TWD'}).format(Number(bal||0)); }
 
-function pad(n){ return String(n).padStart(2,'0'); }
-function toLocalDatetimeValue(ms){
-  const d = new Date(ms);
-  const y = d.getFullYear(), m=pad(d.getMonth()+1), day=pad(d.getDate());
-  const hh=pad(d.getHours()), mm=pad(d.getMinutes());
-  return `${y}-${m}-${day}T${hh}:${mm}`;
-}
-
-// 🆕 匯入後自動刷新畫面
+// 統一畫面重繪
 async function refreshUI(){
   if (screenDetail.classList.contains('active') && currentCustomer) {
     await updateBalance();
@@ -38,6 +31,14 @@ async function refreshUI(){
     await renderInterviewList();
   }
   await renderCustomerList();
+}
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function toLocalDatetimeValue(ms){
+  const d = new Date(ms);
+  const y = d.getFullYear(), m=pad(d.getMonth()+1), day=pad(d.getDate());
+  const hh=pad(d.getHours()), mm=pad(d.getMinutes());
+  return `${y}-${m}-${day}T${hh}:${mm}`;
 }
 
 async function renderCustomerList(){
@@ -106,7 +107,7 @@ $('#btnTopUp').addEventListener('click',()=>openTxnDialog('topup'));
 $('#btnSpend').addEventListener('click',()=>openTxnDialog('spend'));
 $('#btnAddInterview').addEventListener('click',()=>openInterviewDialog());
 
-// 全站備份 + 全站匯入（含自動刷新）
+// 全站備份 + 全站匯入
 $('#btnBackupAll').addEventListener('click',()=> document.getElementById('dlgBackupAll').showModal());
 $('#btnImportAll').addEventListener('click',()=> document.getElementById('dlgImportAll').showModal());
 
@@ -114,9 +115,9 @@ document.getElementById('btnBackupTxns').addEventListener('click',()=>exportAllT
 document.getElementById('btnBackupInterviews').addEventListener('click',()=>exportAllInterviewsCSV());
 document.getElementById('btnBackupJSON').addEventListener('click',()=>exportAllDataJSON());
 
-document.getElementById('btnImportTxns').addEventListener('click',async ()=>{ await importAllTxnsCSV(); await refreshUI(); });
-document.getElementById('btnImportInterviews').addEventListener('click',async ()=>{ await importAllInterviewsCSV(); await refreshUI(); });
-document.getElementById('btnImportJSON').addEventListener('click',async ()=>{ await importAllDataJSON(); await refreshUI(); });
+document.getElementById('btnImportTxns').addEventListener('click', async ()=>{ await importAllTxnsCSV(); await refreshUI(); });
+document.getElementById('btnImportInterviews').addEventListener('click', async ()=>{ await importAllInterviewsCSV(); await refreshUI(); });
+document.getElementById('btnImportJSON').addEventListener('click', async ()=>{ await importAllDataJSON(); await refreshUI(); });
 document.getElementById('btnImportPartial').addEventListener('click',()=>importCustomerCSVInteractive());
 
 ['dlgCustomer','dlgTxn','dlgInterview','dlgImportResult','dlgBackupAll','dlgImportAll'].forEach(wireDialogCancel);
@@ -131,10 +132,9 @@ function openCustomerDialog(edit=null){
     if(!c.name) return; await saveCustomer(c);
     if(screenDetail.classList.contains('active')){
       currentCustomer=c; $('#detailName').textContent=c.name; setContactLine(c);
-      await refreshUI();
-    } else {
-      await renderCustomerList();
+      await updateBalance(); renderInterviewList(); renderTxnList();
     }
+    renderCustomerList();
   },{once:true});
 }
 
@@ -145,10 +145,11 @@ function openTxnDialog(type){
     if(dlg.returnValue!=='ok') return;
     const amount=Number($('#tAmount').value); if(!(amount>0)) return;
     const t={customerId:currentCustomer.id,type,amount,note:$('#tNote').value.trim()};
-    await saveTxn(t); await refreshUI();
+    await saveTxn(t); await updateBalance(); renderTxnList(); renderCustomerList();
   },{once:true});
 }
 
+// 訪談可新增/編輯/刪除 — 強制用程式關閉對話框，確保 'ok'
 function openInterviewDialog(edit=null){
   const dlg=$('#dlgInterview');
   const title=$('#dlgInterviewTitle');
@@ -179,7 +180,7 @@ function openInterviewDialog(edit=null){
     if(!confirm('確認刪除此筆訪談紀錄？')) return;
     await dbDelete('interviews', edit.id);
     dlg.close('cancel');
-    await refreshUI();
+    renderInterviewList();
   };
 
   dlg.showModal();
@@ -197,13 +198,11 @@ function openInterviewDialog(edit=null){
     };
     if(!item.topic) return;
     await saveInterview(item);
-    await refreshUI();
+    renderInterviewList();
   },{once:true});
 }
 
 function labelOf(t){ return {topup:'儲值',spend:'消費',adjust:'調整',refund:'退款'}[t]||t; }
 
-// 🆕 移除預設客戶：不再自動建立示範資料
-(async function seed(){
-  showList();
-})();
+// 無預設示範資料
+(function init(){ showList(); })();
