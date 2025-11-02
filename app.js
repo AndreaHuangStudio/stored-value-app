@@ -1,4 +1,4 @@
-// A1.3.3d (patch) — 強化「新增/編輯訪談」儲存流程，避免部分瀏覽器不觸發 method=dialog 的提交
+// A1.3.3e — 無預設客戶 + 匯入後自動更新畫面 + 訪談可增刪改
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const screenList=$('#screen-list'), screenDetail=$('#screen-detail');
 let currentCustomer=null, currentFilter='all';
@@ -12,7 +12,7 @@ function wireDialogCancel(id) {
   });
   dlg.addEventListener('click', (e)=>{
     const r = dlg.getBoundingClientRect();
-    const inBox = (e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom);
+    const inBox = (e.clientX>=r.left && e.clientX<=r.right && e.clientY<=r.bottom);
     if (!inBox) { try{ dlg.close('cancel'); }catch(_){ } }
   });
 }
@@ -28,6 +28,16 @@ function toLocalDatetimeValue(ms){
   const y = d.getFullYear(), m=pad(d.getMonth()+1), day=pad(d.getDate());
   const hh=pad(d.getHours()), mm=pad(d.getMinutes());
   return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
+// 🆕 匯入後自動刷新畫面
+async function refreshUI(){
+  if (screenDetail.classList.contains('active') && currentCustomer) {
+    await updateBalance();
+    await renderTxnList();
+    await renderInterviewList();
+  }
+  await renderCustomerList();
 }
 
 async function renderCustomerList(){
@@ -79,7 +89,7 @@ $('#btnImport').addEventListener('click',async ()=>{
   const res=await importCustomerCSV(currentCustomer);
   $('#importSummary').textContent=`成功匯入 ${res.imported} 筆；略過 ${res.skipped} 筆；重複跳過 ${res.duplicated||0} 筆。`;
   document.getElementById('dlgImportResult').showModal();
-  await updateBalance(); renderTxnList(); renderCustomerList(); renderInterviewList();
+  await refreshUI();
 });
 $('#btnDeleteCustomer').addEventListener('click',async ()=>{
   if(!currentCustomer) return;
@@ -96,7 +106,7 @@ $('#btnTopUp').addEventListener('click',()=>openTxnDialog('topup'));
 $('#btnSpend').addEventListener('click',()=>openTxnDialog('spend'));
 $('#btnAddInterview').addEventListener('click',()=>openInterviewDialog());
 
-// 全站備份 + 全站匯入
+// 全站備份 + 全站匯入（含自動刷新）
 $('#btnBackupAll').addEventListener('click',()=> document.getElementById('dlgBackupAll').showModal());
 $('#btnImportAll').addEventListener('click',()=> document.getElementById('dlgImportAll').showModal());
 
@@ -104,9 +114,9 @@ document.getElementById('btnBackupTxns').addEventListener('click',()=>exportAllT
 document.getElementById('btnBackupInterviews').addEventListener('click',()=>exportAllInterviewsCSV());
 document.getElementById('btnBackupJSON').addEventListener('click',()=>exportAllDataJSON());
 
-document.getElementById('btnImportTxns').addEventListener('click',()=>importAllTxnsCSV());
-document.getElementById('btnImportInterviews').addEventListener('click',()=>importAllInterviewsCSV());
-document.getElementById('btnImportJSON').addEventListener('click',()=>importAllDataJSON());
+document.getElementById('btnImportTxns').addEventListener('click',async ()=>{ await importAllTxnsCSV(); await refreshUI(); });
+document.getElementById('btnImportInterviews').addEventListener('click',async ()=>{ await importAllInterviewsCSV(); await refreshUI(); });
+document.getElementById('btnImportJSON').addEventListener('click',async ()=>{ await importAllDataJSON(); await refreshUI(); });
 document.getElementById('btnImportPartial').addEventListener('click',()=>importCustomerCSVInteractive());
 
 ['dlgCustomer','dlgTxn','dlgInterview','dlgImportResult','dlgBackupAll','dlgImportAll'].forEach(wireDialogCancel);
@@ -121,9 +131,10 @@ function openCustomerDialog(edit=null){
     if(!c.name) return; await saveCustomer(c);
     if(screenDetail.classList.contains('active')){
       currentCustomer=c; $('#detailName').textContent=c.name; setContactLine(c);
-      await updateBalance(); renderInterviewList(); renderTxnList();
+      await refreshUI();
+    } else {
+      await renderCustomerList();
     }
-    renderCustomerList();
   },{once:true});
 }
 
@@ -134,11 +145,10 @@ function openTxnDialog(type){
     if(dlg.returnValue!=='ok') return;
     const amount=Number($('#tAmount').value); if(!(amount>0)) return;
     const t={customerId:currentCustomer.id,type,amount,note:$('#tNote').value.trim()};
-    await saveTxn(t); await updateBalance(); renderTxnList(); renderCustomerList();
+    await saveTxn(t); await refreshUI();
   },{once:true});
 }
 
-// 新：訪談可新增/編輯/刪除 + 安全儲存（保證關閉值為 ok）
 function openInterviewDialog(edit=null){
   const dlg=$('#dlgInterview');
   const title=$('#dlgInterviewTitle');
@@ -147,7 +157,6 @@ function openInterviewDialog(edit=null){
   const meta=$('#iMeta');
   const saveBtn=$('#btnSaveInterview');
 
-  // 預設時間
   const whenMs = edit?.date || Date.now();
   if(whenInput){ whenInput.value = toLocalDatetimeValue(whenMs); }
 
@@ -158,8 +167,6 @@ function openInterviewDialog(edit=null){
   delBtn.style.display = edit ? 'inline-block' : 'none';
   meta.textContent = edit?.lastModified ? `上次編輯：${new Date(edit.lastModified).toLocaleString()}` : '';
 
-  // 修正：部分裝置上 method="dialog" 不一定會把 value="ok" 帶回
-  // 這裡強制把儲存鈕改為 type="button"，自行驗證後呼叫 dlg.close('ok')
   saveBtn.type = 'button';
   saveBtn.onclick = ()=>{
     const topic = $('#iTopic').value.trim();
@@ -167,13 +174,12 @@ function openInterviewDialog(edit=null){
     try{ dlg.close('ok'); }catch(_){}
   };
 
-  // 刪除
   delBtn.onclick = async ()=>{
     if(!edit) return;
     if(!confirm('確認刪除此筆訪談紀錄？')) return;
     await dbDelete('interviews', edit.id);
     dlg.close('cancel');
-    renderInterviewList();
+    await refreshUI();
   };
 
   dlg.showModal();
@@ -191,21 +197,13 @@ function openInterviewDialog(edit=null){
     };
     if(!item.topic) return;
     await saveInterview(item);
-    renderInterviewList();
+    await refreshUI();
   },{once:true});
 }
 
 function labelOf(t){ return {topup:'儲值',spend:'消費',adjust:'調整',refund:'退款'}[t]||t; }
 
+// 🆕 移除預設客戶：不再自動建立示範資料
 (async function seed(){
-  const customers=await listCustomers();
-  if(customers.length===0){
-    const alice=await saveCustomer({name:'陳小姐',phone:'0912-345-678',lineId:'chenbeauty'});
-    const bob=await saveCustomer({name:'王先生',phone:'0922-888-000',lineId:'king888'});
-    await saveTxn({customerId:alice.id,type:'topup',amount:3000,note:'開卡'});
-    await saveTxn({customerId:alice.id,type:'spend',amount:1200,note:'護理A'});
-    await saveTxn({customerId:bob.id,type:'topup',amount:2000,note:'現金'});
-    await saveInterview({customerId:alice.id,topic:'初次諮詢',content:'希望改善肩頸緊繃',nextAction:'下週預約', date: Date.now(), lastModified: Date.now() });
-  }
   showList();
 })();
