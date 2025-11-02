@@ -1,18 +1,12 @@
 
 const $ = (sel)=>document.querySelector(sel);
 const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
-
 const screenList = $('#screen-list');
 const screenDetail = $('#screen-detail');
-
 let currentCustomer = null;
 let currentFilter = 'all';
 
-function showList(){
-  screenList.classList.add('active');
-  screenDetail.classList.remove('active');
-  renderCustomerList();
-}
+function showList(){ screenList.classList.add('active'); screenDetail.classList.remove('active'); renderCustomerList(); }
 function showDetail(c){
   currentCustomer = c;
   screenList.classList.remove('active');
@@ -29,101 +23,45 @@ function setContactLine(c){
   if (c.lineId) parts.push(`💬 LINE: ${c.lineId}`);
   $('#detailContact').textContent = parts.join('  ·  ');
 }
-
-async function updateBalance(){
-  const bal = await calcBalance(currentCustomer.id);
-  $('#detailBalance').textContent = formatMoney(bal);
-}
-
-function formatMoney(n){
-  const nf = new Intl.NumberFormat('zh-Hant-TW',{style:'currency', currency:'TWD'});
-  return nf.format(Number(n||0));
-}
+async function updateBalance(){ const bal = await calcBalance(currentCustomer.id); $('#detailBalance').textContent = formatMoney(bal); }
+function formatMoney(n){ const nf = new Intl.NumberFormat('zh-Hant-TW',{style:'currency', currency:'TWD'}); return nf.format(Number(n||0)); }
 
 async function renderCustomerList(){
   const kw = $('#searchInput').value.trim();
-  const list = $('#customerList');
-  list.innerHTML = '';
+  const list = $('#customerList'); list.innerHTML = '';
   let arr = await listCustomers();
-  if (kw){
-    arr = arr.filter(c=> 
-      (c.name && c.name.includes(kw)) ||
-      (c.phone && c.phone.includes(kw)) ||
-      (c.lineId && c.lineId.includes(kw))
-    );
-  }
-  const withBal = await Promise.all(arr.map(async c=>({ 
-    ...c, 
-    balance: await calcBalance(c.id),
-    last: (await listTxns(c.id)).sort((a,b)=>b.createdAt-a.createdAt)[0]?.createdAt || null
-  })));
+  if (kw){ arr = arr.filter(c=> (c.name && c.name.includes(kw)) || (c.phone && c.phone.includes(kw)) || (c.lineId && c.lineId.includes(kw)) ); }
+  const withBal = await Promise.all(arr.map(async c=>({ ...c, balance: await calcBalance(c.id), last: (await listTxns(c.id)).sort((a,b)=>b.createdAt-a.createdAt)[0]?.createdAt || null })));
   withBal.sort((a,b)=> a.name.localeCompare(b.name,'zh-Hant'));
   for(const c of withBal){
-    const li = document.createElement('li');
-    li.className = 'item';
-    const sub = [c.phone||'', c.lineId?`LINE:${c.lineId}`:'', c.last?new Date(c.last).toLocaleDateString():null]
-      .filter(Boolean).join(' ・ ');
-    li.innerHTML = `
-      <div class="row between">
-        <div>
-          <div class="title">${c.name}</div>
-          <div class="sub">${sub}</div>
-        </div>
-        <div class="money">${formatMoney(c.balance||0)}</div>
-      </div>
-    `;
-    li.addEventListener('click', ()=> showDetail(c));
-    list.appendChild(li);
+    const li = document.createElement('li'); li.className = 'item';
+    const sub = [c.phone||'', c.lineId?`LINE:${c.lineId}`:'', c.last?new Date(c.last).toLocaleDateString():null].filter(Boolean).join(' ・ ');
+    li.innerHTML = `<div class="row between"><div><div class="title">${c.name}</div><div class="sub">${sub}</div></div><div class="money">${formatMoney(c.balance||0)}</div></div>`;
+    li.addEventListener('click', ()=> showDetail(c)); list.appendChild(li);
   }
 }
-
 async function renderTxnList(){
   let txns = await listTxns(currentCustomer.id);
   txns.sort((a,b)=>b.createdAt-a.createdAt);
-  if (currentFilter!=='all'){
-    txns = txns.filter(t=>t.type===currentFilter);
-  }
-  const ul = $('#txnList');
-  ul.innerHTML = '';
+  if (currentFilter!=='all'){ txns = txns.filter(t=>t.type===currentFilter); }
+  const ul = $('#txnList'); ul.innerHTML='';
   for(const t of txns){
-    const li = document.createElement('li');
-    li.className = 'item';
+    const li = document.createElement('li'); li.className='item';
     const sign = (t.type==='topup' || t.type==='refund' || (t.type==='adjust' && Number(t.amount)>=0)) ? '+' : '−';
-    li.innerHTML = `
-      <div class="row between">
-        <div>
-          <div class="title">${labelOf(t.type)}</div>
-          <div class="sub">${new Date(t.createdAt).toLocaleString()} ${t.note?`・ ${t.note}`:''}</div>
-        </div>
-        <div class="money">${sign}${formatMoney(Math.abs(Number(t.amount||0)))}</div>
-      </div>
-    `;
+    li.innerHTML = `<div class="row between"><div><div class="title">${labelOf(t.type)}</div><div class="sub">${new Date(t.createdAt).toLocaleString()} ${t.note?`・ ${t.note}`:''}</div></div><div class="money">${sign}${formatMoney(Math.abs(Number(t.amount||0)))}</div></div>`;
     ul.appendChild(li);
   }
 }
-
 async function renderInterviewList(){
-  const ul = $('#interviewList');
-  ul.innerHTML = '';
-  let arr = await listInterviews(currentCustomer.id);
-  arr.sort((a,b)=>b.date-a.date);
+  const ul = $('#interviewList'); ul.innerHTML = '';
+  let arr = await listInterviews(currentCustomer.id); arr.sort((a,b)=>b.date-a.date);
   for(const it of arr){
-    const li = document.createElement('li');
-    li.className = 'item';
+    const li = document.createElement('li'); li.className = 'item';
     const summary = (it.content||'').length>60 ? it.content.slice(0,60)+'…' : (it.content||'');
-    li.innerHTML = `
-      <div class="row between">
-        <div>
-          <div class="title">${it.topic || '(未命名主題)'}</div>
-          <div class="sub">🗓 ${new Date(it.date).toLocaleString()}${summary?` ・ ${summary}`:''}${it.nextAction?` ・ 後續：${it.nextAction}`:''}</div>
-        </div>
-      </div>
-    `;
+    li.innerHTML = `<div class="row between"><div><div class="title">${it.topic || '(未命名主題)'}</div><div class="sub">🗓 ${new Date(it.date).toLocaleString()}${summary?` ・ ${summary}`:''}${it.nextAction?` ・ 後續：${it.nextAction}`:''}</div></div></div>`;
     ul.appendChild(li);
   }
 }
-
-// Event bindings
 $('#btnAddCustomer').addEventListener('click', ()=> openCustomerDialog());
 $('#searchInput').addEventListener('input', renderCustomerList);
 $('#btnBack').addEventListener('click', showList);
@@ -134,7 +72,6 @@ $('#btnDeleteCustomer').addEventListener('click', async ()=>{
   await deleteCustomerCascade(currentCustomer.id);
   showList();
 });
-
 $$('.segmented .seg').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     $$('.segmented .seg').forEach(b=>b.classList.remove('active'));
@@ -143,10 +80,8 @@ $$('.segmented .seg').forEach(btn=>{
     renderTxnList();
   });
 });
-
 $('#btnTopUp').addEventListener('click', ()=> openTxnDialog('topup'));
 $('#btnSpend').addEventListener('click', ()=> openTxnDialog('spend'));
-
 $('#btnAddInterview').addEventListener('click', ()=> openInterviewDialog());
 
 function openCustomerDialog(edit=null){
@@ -159,13 +94,7 @@ function openCustomerDialog(edit=null){
   dlg.showModal();
   dlg.addEventListener('close', async ()=>{
     if (dlg.returnValue!=='ok') return;
-    const c = {
-      id: edit?.id,
-      name: $('#cName').value.trim(),
-      phone: $('#cPhone').value.trim(),
-      lineId: $('#cLineId').value.trim(),
-      note: $('#cNote').value.trim(),
-    };
+    const c = { id: edit?.id, name: $('#cName').value.trim(), phone: $('#cPhone').value.trim(), lineId: $('#cLineId').value.trim(), note: $('#cNote').value.trim() };
     if (!c.name) return;
     await saveCustomer(c);
     if (screenDetail.classList.contains('active')){
@@ -179,55 +108,30 @@ function openCustomerDialog(edit=null){
     renderCustomerList();
   }, { once:true });
 }
-
 function openTxnDialog(type){
   const dlg = $('#dlgTxn');
   $('#dlgTxnTitle').textContent = type==='topup' ? '儲值' : (type==='spend' ? '消費' : '交易');
-  $('#tAmount').value = '';
-  $('#tNote').value = '';
+  $('#tAmount').value = ''; $('#tNote').value = '';
   dlg.showModal();
   dlg.addEventListener('close', async ()=>{
     if (dlg.returnValue!=='ok') return;
-    const amount = Number($('#tAmount').value);
-    if (!(amount>0)) return;
-    const t = {
-      customerId: currentCustomer.id,
-      type,
-      amount,
-      note: $('#tNote').value.trim(),
-    };
-    await saveTxn(t);
-    await updateBalance();
-    renderTxnList();
-    renderCustomerList();
+    const amount = Number($('#tAmount').value); if (!(amount>0)) return;
+    const t = { customerId: currentCustomer.id, type, amount, note: $('#tNote').value.trim() };
+    await saveTxn(t); await updateBalance(); renderTxnList(); renderCustomerList();
   }, { once:true });
 }
-
 function openInterviewDialog(){
   const dlg = $('#dlgInterview');
-  $('#iTopic').value = '';
-  $('#iContent').value = '';
-  $('#iNext').value = '';
+  $('#iTopic').value = ''; $('#iContent').value = ''; $('#iNext').value = '';
   dlg.showModal();
   dlg.addEventListener('close', async ()=>{
     if (dlg.returnValue!=='ok') return;
-    const item = {
-      customerId: currentCustomer.id,
-      topic: $('#iTopic').value.trim(),
-      content: $('#iContent').value.trim(),
-      nextAction: $('#iNext').value.trim(),
-    };
+    const item = { customerId: currentCustomer.id, topic: $('#iTopic').value.trim(), content: $('#iContent').value.trim(), nextAction: $('#iNext').value.trim() };
     if (!item.topic) return;
-    await saveInterview(item);
-    renderInterviewList();
+    await saveInterview(item); renderInterviewList();
   }, { once:true });
 }
-
-function labelOf(t){
-  return {topup:'儲值', spend:'消費', adjust:'調整', refund:'退款'}[t] || t;
-}
-
-// Seed demo data on first run
+function labelOf(t){ return {topup:'儲值', spend:'消費', adjust:'調整', refund:'退款'}[t] || t; }
 (async function seed(){
   const customers = await listCustomers();
   if (customers.length===0){

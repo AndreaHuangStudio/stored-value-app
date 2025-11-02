@@ -1,12 +1,4 @@
 
-function toCSV(rows){
-  const esc = (v)=>{
-    if (v===null || v===undefined) return '';
-    v = String(v).replace(/"/g,'""');
-    return /[",\n]/.test(v) ? `"${v}"` : v;
-  };
-  return rows.map(r=>Object.values(r).map(esc).join(',')).join('\n');
-}
 async function exportCustomerCSV(customer){
   const txns = await listTxns(customer.id);
   txns.sort((a,b)=>a.createdAt-b.createdAt);
