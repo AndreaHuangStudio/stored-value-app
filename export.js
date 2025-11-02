@@ -1,3 +1,4 @@
+// A1.3.3d — 匯出含 lastModified（交易/訪談都支援）
 function asCSV(rows){
   const esc = (v)=>{ if (v===null || v===undefined) return ''; v = String(v).replace(/"/g,'""'); return /[",\n]/.test(v) ? `"${v}"` : v; };
   return rows.map(r=>r.map(esc).join(',')).join('\n');
@@ -15,27 +16,44 @@ function saveBlob(filename, blob){
 async function exportCustomerCSV(customer){
   const txns = await listTxns(customer.id);
   txns.sort((a,b)=>a.createdAt-b.createdAt);
-  const rows = [['日期','類型','金額','備註']];
-  for(const t of txns){ rows.push([new Date(t.createdAt).toISOString(), t.type, t.amount, t.note||'']); }
+  const rows = [['日期','類型','金額','備註','最後修改']];
+  for(const t of txns){
+    rows.push([
+      new Date(t.createdAt).toISOString(),
+      t.type, t.amount, t.note||'',
+      t.lastModified ? new Date(t.lastModified).toISOString() : ''
+    ]);
+  }
   const blob = new Blob([asCSV(rows)], {type:'text/csv;charset=utf-8'});
   saveBlob(`交易_${customer.name}_${new Date().toISOString().slice(0,10)}.csv`, blob);
 }
 async function exportCustomerInterviewsCSV(customer){
   let list = await listInterviews(customer.id);
   list.sort((a,b)=>a.date-b.date);
-  const rows = [['日期','主題','內容','後續']];
-  for(const it of list){ rows.push([new Date(it.date).toISOString(), it.topic||'', it.content||'', it.nextAction||'']); }
+  const rows = [['日期','主題','內容','後續','最後修改']];
+  for(const it of list){
+    rows.push([
+      new Date(it.date).toISOString(),
+      it.topic||'', it.content||'', it.nextAction||'',
+      it.lastModified ? new Date(it.lastModified).toISOString() : ''
+    ]);
+  }
   const blob = new Blob([asCSV(rows)], {type:'text/csv;charset=utf-8'});
   saveBlob(`訪談_${customer.name}_${new Date().toISOString().slice(0,10)}.csv`, blob);
 }
 async function exportAllTxnsCSV(){
   const customers = await listCustomers();
-  const rows = [['客戶','日期','類型','金額','備註']];
+  const rows = [['客戶','日期','類型','金額','備註','最後修改']];
   for(const c of customers){
     const txns = await listTxns(c.id);
     txns.sort((a,b)=>a.createdAt-b.createdAt);
     for(const t of txns){
-      rows.push([c.name, new Date(t.createdAt).toISOString(), t.type, t.amount, t.note||'']);
+      rows.push([
+        c.name,
+        new Date(t.createdAt).toISOString(),
+        t.type, t.amount, t.note||'',
+        t.lastModified ? new Date(t.lastModified).toISOString() : ''
+      ]);
     }
   }
   const blob = new Blob([asCSV(rows)], {type:'text/csv;charset=utf-8'});
@@ -43,12 +61,17 @@ async function exportAllTxnsCSV(){
 }
 async function exportAllInterviewsCSV(){
   const customers = await listCustomers();
-  const rows = [['客戶','日期','主題','內容','後續']];
+  const rows = [['客戶','日期','主題','內容','後續','最後修改']];
   for(const c of customers){
     let list = await listInterviews(c.id);
     list.sort((a,b)=>a.date-b.date);
     for(const it of list){
-      rows.push([c.name, new Date(it.date).toISOString(), it.topic||'', it.content||'', it.nextAction||'']);
+      rows.push([
+        c.name,
+        new Date(it.date).toISOString(),
+        it.topic||'', it.content||'', it.nextAction||'',
+        it.lastModified ? new Date(it.lastModified).toISOString() : ''
+      ]);
     }
   }
   const blob = new Blob([asCSV(rows)], {type:'text/csv;charset=utf-8'});
