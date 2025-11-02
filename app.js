@@ -1,3 +1,4 @@
+// A1.3.3c — 訪談可編輯日期 + lastModified
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const screenList=$('#screen-list'), screenDetail=$('#screen-detail');
 let currentCustomer=null, currentFilter='all';
@@ -20,6 +21,14 @@ function showList(){ screenList.classList.add('active'); screenDetail.classList.
 function showDetail(c){ currentCustomer=c; screenList.classList.remove('active'); screenDetail.classList.add('active'); $('#detailName').textContent=c.name; setContactLine(c); updateBalance(); renderTxnList(); renderInterviewList(); }
 function setContactLine(c){ const p=[]; if(c.phone)p.push(`📞 ${c.phone}`); if(c.lineId)p.push(`💬 LINE: ${c.lineId}`); $('#detailContact').textContent=p.join('  ·  '); }
 async function updateBalance(){ const bal=await calcBalance(currentCustomer.id); $('#detailBalance').textContent=new Intl.NumberFormat('zh-Hant-TW',{style:'currency',currency:'TWD'}).format(Number(bal||0)); }
+
+function pad(n){ return String(n).padStart(2,'0'); }
+function toLocalDatetimeValue(ms){
+  const d = new Date(ms);
+  const y = d.getFullYear(), m=pad(d.getMonth()+1), day=pad(d.getDate());
+  const hh=pad(d.getHours()), mm=pad(d.getMinutes());
+  return `${y}-${m}-${day}T${hh}:${mm}`;
+}
 
 async function renderCustomerList(){
   const kw=$('#searchInput').value.trim(); const list=$('#customerList'); list.innerHTML=''; let arr=await listCustomers();
@@ -49,9 +58,12 @@ async function renderTxnList(){
 async function renderInterviewList(){
   const ul=$('#interviewList'); ul.innerHTML=''; let arr=await listInterviews(currentCustomer.id); arr.sort((a,b)=>b.date-a.date);
   for(const it of arr){
-    const li=document.createElement('li'); li.className='item';
+    const li=document.createElement('li'); li.className='item'; li.tabIndex=0;
+    const edited = it.lastModified ? `（編輯於：${new Date(it.lastModified).toLocaleString()}）` : '';
     const summary=(it.content||'').length>60? it.content.slice(0,60)+'…' : (it.content||'');
-    li.innerHTML=`<div class="row between"><div><div class="title">${it.topic||'(未命名主題)'}</div><div class="sub">🗓 ${new Date(it.date).toLocaleString()}${summary?` ・ ${summary}`:''}${it.nextAction?` ・ 後續：${it.nextAction}`:''}</div></div></div>`;
+    li.innerHTML=`<div class="row between"><div><div class="title">${it.topic||'(未命名主題)'}</div><div class="sub">🗓 ${new Date(it.date).toLocaleString()}${summary?` ・ ${summary}`:''}${it.nextAction?` ・ 後續：${it.nextAction}`:''} ${edited}</div></div></div>`;
+    li.addEventListener('click',()=>openInterviewDialog(it));
+    li.addEventListener('keydown',(e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openInterviewDialog(it); } });
     ul.appendChild(li);
   }
 }
@@ -65,9 +77,9 @@ $('#btnExport').addEventListener('click',()=>exportCustomerCSV(currentCustomer))
 $('#btnExportInterviews').addEventListener('click',()=>exportCustomerInterviewsCSV(currentCustomer));
 $('#btnImport').addEventListener('click',async ()=>{
   const res=await importCustomerCSV(currentCustomer);
-  $('#importSummary').textContent=`成功匯入 ${res.imported} 筆；略過 ${res.skipped} 筆。`;
+  $('#importSummary').textContent=`成功匯入 ${res.imported} 筆；略過 ${res.skipped} 筆；重複跳過 ${res.duplicated||0} 筆。`;
   document.getElementById('dlgImportResult').showModal();
-  await updateBalance(); renderTxnList(); renderCustomerList();
+  await updateBalance(); renderTxnList(); renderCustomerList(); renderInterviewList();
 });
 $('#btnDeleteCustomer').addEventListener('click',async ()=>{
   if(!currentCustomer) return;
@@ -126,12 +138,50 @@ function openTxnDialog(type){
   },{once:true});
 }
 
-function openInterviewDialog(){
-  const dlg=$('#dlgInterview'); $('#iTopic').value=''; $('#iContent').value=''; $('#iNext').value=''; dlg.showModal();
+// 新：訪談可新增/編輯/刪除 + 編輯日期 + lastModified
+function openInterviewDialog(edit=null){
+  const dlg=$('#dlgInterview');
+  const title=$('#dlgInterviewTitle');
+  const delBtn=$('#btnDeleteInterview');
+  const whenInput=$('#iWhen');
+  const meta=$('#iMeta');
+
+  // 預設時間
+  const whenMs = edit?.date || Date.now();
+  whenInput.value = toLocalDatetimeValue(whenMs);
+
+  $('#iTopic').value=edit?.topic||'';
+  $('#iContent').value=edit?.content||'';
+  $('#iNext').value=edit?.nextAction||'';
+  title.textContent = edit ? '編輯訪談紀錄' : '新增訪談紀錄';
+  delBtn.style.display = edit ? 'inline-block' : 'none';
+  meta.textContent = edit?.lastModified ? `上次編輯：${new Date(edit.lastModified).toLocaleString()}` : '';
+
+  // 刪除
+  delBtn.onclick = async ()=>{
+    if(!edit) return;
+    if(!confirm('確認刪除此筆訪談紀錄？')) return;
+    await dbDelete('interviews', edit.id);
+    dlg.close('cancel');
+    renderInterviewList();
+  };
+
+  dlg.showModal();
   dlg.addEventListener('close',async ()=>{
     if(dlg.returnValue!=='ok') return;
-    const item={customerId:currentCustomer.id,topic:$('#iTopic').value.trim(),content:$('#iContent').value.trim(),nextAction:$('#iNext').value.trim()};
-    if(!item.topic) return; await saveInterview(item); renderInterviewList();
+    const picked = whenInput.value ? new Date(whenInput.value).getTime() : whenMs;
+    const item={
+      id: edit?.id,
+      customerId: currentCustomer.id,
+      topic: $('#iTopic').value.trim(),
+      content: $('#iContent').value.trim(),
+      nextAction: $('#iNext').value.trim(),
+      date: picked,
+      lastModified: Date.now()
+    };
+    if(!item.topic) return;
+    await saveInterview(item);
+    renderInterviewList();
   },{once:true});
 }
 
@@ -145,7 +195,7 @@ function labelOf(t){ return {topup:'儲值',spend:'消費',adjust:'調整',refun
     await saveTxn({customerId:alice.id,type:'topup',amount:3000,note:'開卡'});
     await saveTxn({customerId:alice.id,type:'spend',amount:1200,note:'護理A'});
     await saveTxn({customerId:bob.id,type:'topup',amount:2000,note:'現金'});
-    await saveInterview({customerId:alice.id,topic:'初次諮詢',content:'希望改善肩頸緊繃',nextAction:'下週預約'});
+    await saveInterview({customerId:alice.id,topic:'初次諮詢',content:'希望改善肩頸緊繃',nextAction:'下週預約', date: Date.now(), lastModified: Date.now() });
   }
   showList();
 })();
