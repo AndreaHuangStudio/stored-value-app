@@ -1,4 +1,3 @@
-
 function parseCSV(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim().length>0);
   if(!lines.length) return [];

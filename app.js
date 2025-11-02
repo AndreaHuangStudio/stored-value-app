@@ -1,8 +1,6 @@
-
 const $=(s)=>document.querySelector(s), $$=(s)=>Array.from(document.querySelectorAll(s));
 const screenList=$('#screen-list'), screenDetail=$('#screen-detail');
 let currentCustomer=null, currentFilter='all';
-
 function wireDialogCancel(id) {
   const dlg = document.getElementById(id);
   if (!dlg) return;
@@ -16,7 +14,6 @@ function wireDialogCancel(id) {
     if (!inBox) { try{ dlg.close('cancel'); }catch(_){ } }
   });
 }
-
 function showList(){ screenList.classList.add('active'); screenDetail.classList.remove('active'); renderCustomerList(); }
 function showDetail(c){ currentCustomer=c; screenList.classList.remove('active'); screenDetail.classList.add('active'); $('#detailName').textContent=c.name; setContactLine(c); updateBalance(); renderTxnList(); renderInterviewList(); }
 function setContactLine(c){ const p=[]; if(c.phone)p.push(`📞 ${c.phone}`); if(c.lineId)p.push(`💬 LINE: ${c.lineId}`); $('#detailContact').textContent=p.join('  ·  '); }

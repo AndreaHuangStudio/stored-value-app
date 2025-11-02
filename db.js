@@ -1,4 +1,3 @@
-
 const DB_NAME='sv-ledger-db'; const DB_VERSION=2;
 const STORE_CUSTOMERS='customers'; const STORE_TXNS='transactions'; const STORE_INTERVIEWS='interviews';
 let dbPromise;

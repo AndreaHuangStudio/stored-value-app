@@ -10,6 +10,8 @@ body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,
 .danger{background:#b91c1c;color:#fff;border:none;border-radius:10px;padding:8px 12px}
 .banner{display:flex;gap:8px;align-items:center;justify-content:space-between;background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;padding:10px 12px}
 .banner button{border-color:#fdba74;color:#7c2d12}
+.ios-hint{display:flex;gap:8px;align-items:center;justify-content:space-between;background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;padding:10px 12px}
+.ios-hint .share{display:inline-block; border:1px solid #94a3b8; border-radius:6px; padding:0 6px; margin:0 4px;}
 main.screen{display:none;max-width:760px;margin:0 auto;padding:12px} main.active{display:block}
 .search-row{display:flex;gap:8px}
 input,textarea,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:10px;font-size:16px}
