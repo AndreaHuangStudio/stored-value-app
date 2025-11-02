@@ -3,11 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>客戶儲值帳本 A1.3.2a</title>
+  <title>客戶儲值帳本 A1.3.2b</title>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#2e7d32">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
   <script defer src="db.js"></script>
@@ -20,18 +18,7 @@
   <h1>客戶</h1>
   <div class="spacer"></div>
   <button id="btnBackupAll" class="ghost" type="button">全站備份</button>
-  <button id="btnInstall" class="ghost" hidden>安裝</button>
 </header>
-
-<div id="installHint" class="ios-hint" hidden>
-  <div>📲 將這個工具加入主畫面：先點 <span class="share">分享</span> → 選 <b>加入主畫面</b>（iPhone 需用 Safari）。</div>
-  <button id="btnHideHint" class="ghost small" type="button">知道了</button>
-</div>
-
-<div id="backupBanner" class="banner" hidden>
-  <div>🔔 提醒：請定期「匯出 CSV / JSON」備份資料（刪除 App/書籤會清空本機資料）。</div>
-  <button id="btnDismissBanner" class="ghost small" type="button">知道了</button>
-</div>
 
 <main id="screen-list" class="screen active">
   <div class="search-row">
@@ -133,49 +120,6 @@
 
 <input id="fileImport" type="file" accept=".csv,text/csv" hidden />
 
-<footer class="footnote"><small>離線可用・資料儲存在本機 IndexedDB・請定期用「匯出CSV/JSON」備份到雲端或檔案 App</small></footer>
+<footer class="footnote"><small>離線可用・資料儲存在本機 IndexedDB・請定期用匯出備份</small></footer>
 
-<script>
-let deferredPrompt;
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Android/Chrome 安裝按鈕（iOS 不支援 beforeinstallprompt）
-  window.addEventListener('beforeinstallprompt', (e)=>{
-    e.preventDefault();
-    deferredPrompt = e;
-    if (!isIOS && !isStandalone) {
-      const b = document.getElementById('btnInstall');
-      b.hidden = false;
-      b.onclick = async ()=>{ b.hidden = true; deferredPrompt.prompt(); deferredPrompt = null; };
-    }
-  });
-
-  // iOS 提示（用 Safari 才有「加入主畫面」）
-  try{
-    const hideKey='sv_install_hint_dismissed';
-    const dismissed = localStorage.getItem(hideKey)==='1';
-    const inSafari = !!navigator.userAgent.match(/Safari/) && !navigator.userAgent.match(/CriOS|FxiOS|EdgiOS/);
-    if (isIOS && !isStandalone && inSafari && !dismissed) {
-      document.getElementById('installHint').hidden = false;
-      document.getElementById('btnHideHint').onclick = ()=>{
-        localStorage.setItem(hideKey,'1');
-        document.getElementById('installHint').hidden = true;
-      };
-    }
-  }catch(e){}
-
-  // 備份提醒
-  try{
-    const key='sv_backup_banner_dismissed_at'; const days=7; const now=Date.now();
-    const last = Number(localStorage.getItem(key)||0);
-    if (!last || (now-last)>days*24*60*60*1000){ document.getElementById('backupBanner').hidden=false; }
-    document.getElementById('btnDismissBanner').addEventListener('click', ()=>{
-      localStorage.setItem(key, String(Date.now()));
-      document.getElementById('backupBanner').hidden=true;
-    });
-  }catch(e){}
-});
-if ('serviceWorker' in navigator){ navigator.serviceWorker.register('./service-worker.js').catch(()=>{}); }
-</script>
 </body></html>
